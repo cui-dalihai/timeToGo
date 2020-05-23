@@ -101,25 +101,25 @@ type request struct {
 	response chan <- result
 }
 
-type Memo struct {
+type memo struct {
 	requests chan request
 }
 
-func New(f Func) *Memo {
-	memo := &Memo{requests: make(chan request)}
+func New(f Func) *memo {
+	memo := &memo{requests: make(chan request)}
 	go memo.server(f)
 	return memo
 }
 
-func (memo *Memo) Get(key string) (interface{}, error) {
+func (memo *memo) Get(key string) (interface{}, error) {
 	response := make(chan result)
 	memo.requests <- request{key, response}
 	res := <- response
 	return res.value, res.err
 }
-func (memo *Memo) Close() { close(memo.requests) }
+func (memo *memo) Close() { close(memo.requests) }
 
-func (memo *Memo) server(f Func) {
+func (memo *memo) server(f Func) {
 	cache := make(map[string]*entry)
 	for req := range memo.requests {
 		e := cache[req.key]

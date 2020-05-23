@@ -20,8 +20,6 @@ func httpGetBody(url string) (interface{}, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-var HTTPGetBody = httpGetBody
-
 func incomingURLs() <-chan string {
 	ch := make(chan string)
 	go func() {

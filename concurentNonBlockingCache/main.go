@@ -34,7 +34,7 @@ func incomingURLs () []string {
 	return l
 }
 
-func HttpGetBody(url string) (interface{}, error) {
+func httpGetBody(url string) (interface{}, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func main()  {
 	// 并发执行, 为每个url单独创建一个goroutine来请求
 	// 由于get请求是耗时操作, 那么在缓存建立之前, 所有的goroutine可能都已经完成缓存检查且结果是都没有缓存, 所有的goroutine都去get
 	// 并且相同url的两个goroutine后响应的结果会覆盖前者, -race 会检测出这两个goroutine在未同步的情况下写了相同位置, 即出现了竞态
-	m := memo.New(HttpGetBody)
+	m := memo.New(httpGetBody)
 	var n sync.WaitGroup
 	allUrls := incomingURLs()
 	for i := range allUrls {
