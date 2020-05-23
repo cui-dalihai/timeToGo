@@ -2,21 +2,15 @@ package memo
 
 
 
-type result struct {
-	value interface{}
-	err error
-}
-
-type Func func(key string) (interface{}, error)
 
 //type Memo struct {
-//	f Func
+//	f Func2
 //	cache map[string]result
 //	mu sync.Mutex
 //}
 
 // New方法仅仅是一个普通的可导出方法，接受一个Func类型的参数f，返回一个Memo类型的结果  todo 是否可以返回值本身而不是值的指针呢？
-//func New(f Func) *Memo {
+//func New(f Func2) *Memo {
 //	return &Memo{f: f, cache: make(map[string]result)}
 //}
 
@@ -61,18 +55,15 @@ type Func func(key string) (interface{}, error)
 //	return res.value, res.err
 //}
 
-type entry struct {
-	res result
-	ready chan struct{}
-}
+
 
 //type Memo struct {
-//	f Func
+//	f Func2
 //	mu sync.Mutex
 //	cache map[string]*entry
 //}
 //
-//func New(f Func) *Memo {
+//func New(f Func2) *Memo {
 //	return &Memo{f: f, cache: make(map[string]*entry)}
 //}
 
@@ -95,6 +86,17 @@ type entry struct {
 //	return e.res.value, e.res.err
 //}
 
+type result struct {
+	value interface{}
+	err error
+}
+
+type func2 func(key string) (interface{}, error)
+
+type entry struct {
+	res result
+	ready chan struct{}
+}
 
 type request struct {
 	key string
@@ -105,7 +107,7 @@ type memo struct {
 	requests chan request
 }
 
-func New(f Func) *memo {
+func New(f func2) *memo {
 	memo := &memo{requests: make(chan request)}
 	go memo.server(f)
 	return memo
@@ -117,9 +119,9 @@ func (memo *memo) Get(key string) (interface{}, error) {
 	res := <- response
 	return res.value, res.err
 }
-func (memo *memo) Close() { close(memo.requests) }
+func (memo *memo) close() { close(memo.requests) }
 
-func (memo *memo) server(f Func) {
+func (memo *memo) server(f func2) {
 	cache := make(map[string]*entry)
 	for req := range memo.requests {
 		e := cache[req.key]
@@ -132,7 +134,7 @@ func (memo *memo) server(f Func) {
 	}
 }
 
-func (e *entry) call(f Func, key string) {
+func (e *entry) call(f func2, key string) {
 	e.res.value, e.res.err = f(key)
 	close(e.ready)
 }
