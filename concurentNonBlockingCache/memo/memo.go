@@ -86,62 +86,78 @@ package memo
 //	return e.res.value, e.res.err
 //}
 
+type Func func(key string) (interface{}, error)
 type result struct {
 	value interface{}
 	err error
 }
-
-type func2 func(key string) (interface{}, error)
-
-type entry struct {
+type entry struct{
 	res result
 	ready chan struct{}
 }
-
+func (e *entry) call(f Func, key string) {
+	e.res.value, e.res.err = f(key)
+	close(e.ready)
+}
+func (e *entry) deliver(response chan<- result) {
+	// 对于耗时请求f, 相同的url时会出现第一个写入cache并发起请求, 而第二个需要在deliver中监听e.ready
+	// 只有当第一个url的call关闭e.ready, 第二个才能收到结果
+	<- e.ready
+	response <- e.res
+}
 type request struct {
 	key string
-	response chan <- result
+	response chan<- result   // 请求结果写入通道
 }
-
-type memo struct {
-	requests chan request
+type Memo struct {
+	requests chan request    // request 类型通道
 }
+func (memo *Memo) Close() { close(memo.requests) }
 
-func New(f func2) *memo {
-	memo := &memo{requests: make(chan request)}
-	go memo.server(f)
-	return memo
-}
-
-func (memo *memo) Get(key string) (interface{}, error) {
-	response := make(chan result)
-	memo.requests <- request{key, response}
-	res := <- response
-	return res.value, res.err
-}
-func (memo *memo) close() { close(memo.requests) }
-
-func (memo *memo) server(f func2) {
+// monitor goroutine, 守护cache并且非阻塞的处理请求,
+// 请求结果的call和等待结果的deliver都需要独立的goroutine, 以防止阻塞Server的主goroutine
+func (memo *Memo) Server(f Func) {
 	cache := make(map[string]*entry)
+
+	// 因为仅创建了一个memo, 所以只有一个memo.requests通道
+	// 所以每收到一个request, 对它处理的过程都是线性的
 	for req := range memo.requests {
+
+		// 读写cache也都是在monitor goroutine内, 所以不用加锁
 		e := cache[req.key]
 		if e == nil {
 			e = &entry{ready: make(chan struct{})}
 			cache[req.key] = e
+
+			// 为每个url对应的entry单独创建一个goroutine, 用来请求这个url, 写entry, 关闭entry
 			go e.call(f, req.key)
 		}
+
+		// 再为每个e创建一个监听ready的通道, 一旦e.ready, 就把e.res发到这个req的响应通道
+		// 这样每个url通过Get创建的监听response的通道就能收到对应的响应
 		go e.deliver(req.response)
 	}
 }
 
-func (e *entry) call(f func2, key string) {
-	e.res.value, e.res.err = f(key)
-	close(e.ready)
+// 为每个url创建一个goroutine, 每个goroutine来调用memo的Get方法
+func (memo *Memo) Get(key string) (interface{}, error) {
+	response := make(chan result)
+
+	// 为每个key创建一个request, 包含key和一个通道
+	memo.requests <- request{key, response}
+
+	// 然后就立即监听这个request的response通道
+	// 所以每个url的goroutine都会在这个response监听的位置阻塞等待
+	// 当deliver结束后每个url对应的Get创建的goroutine才会收到res, 结束阻塞
+	res := <- response
+	return res.value, res.err
 }
 
-func (e *entry) deliver(response chan <- result) {
-	<- e.ready
-	response <- e.res
+// 为httpGetBody创建一个Memo, 并启动memo.requests通道监听
+func New(f Func) *Memo {
+	memo := &Memo{requests: make(chan request)}
+	go memo.Server(f)
+	return memo
 }
 
 
