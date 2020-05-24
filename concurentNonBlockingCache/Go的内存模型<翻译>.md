@@ -91,7 +91,7 @@ func main() {
 3. A receive from an unbuffered channel **happens before** the send on that channel **completes**. 
 4. The kth receive on a channel with capacity C **happens before** the k+Cth send from that channel **completes**.
 
-前两句比较好理解, 重点是3,4两句对于非缓冲通道和缓冲通道满了情况的描述比较令人费解, 另一篇介绍通道的文档中有这一段
+前两句比较好理解, 重点是3,4两句对于非缓冲通道和缓冲通道满了情况的描述比较令人费解, 另[一篇介绍通道的文档](https://golang.org/doc/effective_go.html#channels)中有这一段
 >If the channel is unbuffered, the sender blocks until the receiver has received the value. If the channel has a buffer, the sender blocks only until the value has been copied to the buffer; if the buffer is full, this means waiting until some receiver has retrieved a value.
 
 >如果是无缓冲通道, 发送者会一直阻塞到接收者接收完成这个值. 如果是缓冲通道, 发送者会一直阻塞直到值被复制到缓冲区, 如果缓冲区满了, 那就要等接收者从缓冲区中取走一个值。
