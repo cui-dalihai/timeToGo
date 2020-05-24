@@ -5,6 +5,7 @@
 在单个goroutine中, 读写的真正执行顺序必须要和代码中指定的顺序具有相同的执行效果, 这句话的意思是, 解释器和CPU可能会对程序中单个goroutine内的一些读写操作进行重新排序, 但调整顺序前后的执行结果不能跟程序中指定的顺序执行结果不一致。由于这种对执行顺序的调整，一个goroutine中的执行顺序和其它goroutine观察到实际执行顺序可能会不同，比如一个goroutine执行了a=1; b=2,另一个goroutine可能会观察到b先被复制为2，然后再是a=1;
 
 **Happens Before:** 
+
 为了说清楚读和写的需求，先定义一下这个happens before: 在...之前发生, 当e1在e2之前发生时, 就是在说e2在e1之后发生，当e1 not happens before e2, 且e2 not happens before e1时, 我们说e1和e2这时是并发的,
 
 在单个goroutine内, 在...发生之前这样的顺序是由代码表达式决定的
@@ -24,7 +25,9 @@
 对于一个大于一个机器字的值来说，对它的读和写和多机器字大小的操作一样，都是不确定的顺序
 
 **同步中的happens before:**
+
 几种可靠的发生顺序
+
 1. 如果p导入q包, 那么q的init函数是可靠发生在p中任何逻辑之前的
 2. 而main包中main函数是可靠发生在所有init函数之后的
 3. goroutine创建时的go声明可靠发生在这个goroutine开始执行之前
@@ -47,7 +50,9 @@ func hello() {
 }
 ```
 **通道通讯中的happens before:**
+
 通道通讯是主要的goroutine之间的同步机制, 每个通道有对应的发送方和接收方, 通常发送和接收会在不同的goroutine
+
 5. 一次发送可靠发生在对应这次发送的接收完成之前
 ```
 var c = make(chan int, 10)
@@ -113,7 +118,9 @@ func main() {
     }
 }
 ```
+
 **锁中的happens before:**
+
 9. 对于sync.Mutex或者sync.RWMutex类型变量l(小写L), n, m其中n<m, n次对l.Unlock()可靠发生在m次的l.Lock()之前
 ```
 var l sync.Mutex
@@ -151,6 +158,7 @@ func twoprint() {
     go doprint()     # 所以a写入发生在once.Do(setup)之前，print(a)会可靠打印两遍hello
 }
 ```
+
 **不正确的同步:**
 ```
 var a, b int
