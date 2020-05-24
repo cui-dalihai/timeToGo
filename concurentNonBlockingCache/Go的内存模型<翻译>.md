@@ -101,7 +101,8 @@ func main() {
 另外, 这段话还提供了缓冲通道的细节: 把发送者等待的是把值复制到缓冲区, 而不是接收者完成, 接收者等待的是缓冲区的值, 所以对于缓冲未满的情况, 发送者要先完成把值复制到缓冲区, 接收者才能从缓冲区读到值, 就是1的结论, 而非缓冲通道发送者等待的是接收者完成.(这细节有卵用, 可能是知道从阻塞状态下通道解阻塞后, 接收者先走一步，但两者处于不同goroutine, 后续各自的代码执行先后还是未知的😜)
 
 两种通道时序图简单画一下吧
-![blockchain](channel-sender-receiver.png)
+
+<center><img src="https://github.com/cui-dalihai/timeToGo/blob/master/concurentNonBlockingCache/channel-sender-receiver.png" width="100%" height="100%"></center>
 
 ok, 接着读这篇内存模型的文档
 
@@ -137,7 +138,7 @@ func main() {
 }
 ```
 10. For any call to l.RLock on a sync.RWMutex variable l, there is an n such that the l.RLock happens (returns) after call n to l.Unlock and the matching l.RUnlock happens before call n+1 to l.Lock.这句意思是下图
-![blockchain](RWMutex.png)
+<center><img src="https://github.com/cui-dalihai/timeToGo/blob/master/concurentNonBlockingCache/RWMutex.png" width="30%" height="30%"></center>
 
 
 
