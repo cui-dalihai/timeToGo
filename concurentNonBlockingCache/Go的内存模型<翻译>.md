@@ -138,11 +138,13 @@ func main() {
 }
 ```
 10. For any call to l.RLock on a sync.RWMutex variable l, there is an n such that the l.RLock happens (returns) after call n to l.Unlock and the matching l.RUnlock happens before call n+1 to l.Lock.这句意思是下图
-<center><img src="https://github.com/cui-dalihai/timeToGo/blob/master/concurentNonBlockingCache/RWMutex.png" width="30%" height="30%"></center>
+
+<center><img src="https://github.com/cui-dalihai/timeToGo/blob/master/concurentNonBlockingCache/RWMutex.png" width="23%" height="23%"></center>
 
 
 
 **Once中的happens before:**
+
 11. Once提供了并发场景下的初始化方案, 多个goroutine调用once.Do(f), 仅会有一个真正执行了f( ), 其它的goroutine会阻塞等待执行的那个返回, 即其中一个真正执行的那个goroutine执行f( )会发生在任何一once.Do(f)返回之前
 ```
 var a string
