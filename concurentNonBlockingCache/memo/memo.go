@@ -1,8 +1,5 @@
 package memo
 
-
-
-
 //type Memo struct {
 //	f Func2
 //	cache map[string]result
@@ -55,8 +52,6 @@ package memo
 //	return res.value, res.err
 //}
 
-
-
 //type Memo struct {
 //	f Func2
 //	mu sync.Mutex
@@ -66,7 +61,6 @@ package memo
 //func New(f Func2) *Memo {
 //	return &Memo{f: f, cache: make(map[string]*entry)}
 //}
-
 
 // 每个goroutine在检查cache key和写入key-entry使用锁来同步, 这都是在内存中完成, 而f都是并发请求的
 //func (memo *Memo) Get4(key string) (value interface{}, err error) {
@@ -89,12 +83,13 @@ package memo
 type Func func(key string) (interface{}, error)
 type result struct {
 	value interface{}
-	err error
+	err   error
 }
-type entry struct{
-	res result
+type entry struct {
+	res   result
 	ready chan struct{}
 }
+
 func (e *entry) call(f Func, key string) {
 	e.res.value, e.res.err = f(key)
 	close(e.ready)
@@ -102,16 +97,18 @@ func (e *entry) call(f Func, key string) {
 func (e *entry) deliver(response chan<- result) {
 	// 对于耗时请求f, 相同的url时会出现第一个写入cache并发起请求, 而第二个需要在deliver中监听e.ready
 	// 只有当第一个url的call关闭e.ready, 第二个才能收到结果
-	<- e.ready
+	<-e.ready
 	response <- e.res
 }
+
 type request struct {
-	key string
-	response chan<- result   // 请求结果写入通道
+	key      string
+	response chan<- result // 请求结果写入通道
 }
 type Memo struct {
-	requests chan request    // request 类型通道
+	requests chan request // request 类型通道
 }
+
 func (memo *Memo) Close() { close(memo.requests) }
 
 // monitor goroutine, 守护cache并且非阻塞的处理请求,
@@ -149,7 +146,7 @@ func (memo *Memo) Get(key string) (interface{}, error) {
 	// 然后就立即监听这个request的response通道
 	// 所以每个url的goroutine都会在这个response监听的位置阻塞等待
 	// 当deliver结束后每个url对应的Get创建的goroutine才会收到res, 结束阻塞
-	res := <- response
+	res := <-response
 	return res.value, res.err
 }
 
@@ -159,6 +156,3 @@ func New(f Func) *Memo {
 	go memo.Server(f)
 	return memo
 }
-
-
-
