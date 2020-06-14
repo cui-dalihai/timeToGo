@@ -5,8 +5,10 @@ import (
 	"image"
 	"image/color"
 	"image/gif"
+	"image/png"
 	"log"
 	"math"
+	"math/cmplx"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -27,6 +29,8 @@ func main() {
 	http.HandleFunc("/count", counter)
 	http.HandleFunc("/report", report)
 	http.HandleFunc("/lsjo", lsjo)
+	http.HandleFunc("/sufce", sufce)
+	http.HandleFunc("/mdbrt", mdbrt)
 	log.Fatal(http.ListenAndServe("localhost:8000", nil))
 }
 
@@ -108,5 +112,87 @@ func lsjo(w http.ResponseWriter, r *http.Request) {
 	}
 	gif.EncodeAll(w, &anim)
 }
+
+const (
+	width, height = 600, 320
+	cells         = 100
+	xyrange       = 30.0
+	xyscale       = width / 2 / xyrange
+	zscale        = height * 0.4
+	angle         = math.Pi / 6
+)
+var sin30, cos30 = math.Sin(angle), math.Cos(angle)
+
+func sufce(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "image/svg+xml")
+
+	fmt.Fprintf(w, "<svg xmlns='http://www.w3.org/2000/svg' " +
+		"style='stroke: grey; fill: white; stroke-width: 0.7' " +
+		"width='%d' height='%d'>", width, height)
+
+	for i := 0; i < cells; i ++ {
+		for j := 0; j < cells; j ++ {
+			ax, ay := corner(i+1, j)
+			bx, by := corner(i, j)
+			cx, cy := corner(i, j+1)
+			dx, dy := corner(i+1, j+1)
+			fmt.Fprintf(w, "<polygon points='%g,%g %g,%g %g,%g %g,%g'/>\n",
+				ax, ay, bx, by, cx, cy, dx, dy)
+		}
+	}
+	fmt.Fprintf(w, "</svg>")
+}
+
+func corner(i, j int) (float64, float64) {
+	x := xyrange * (float64(i)/cells - 0.5)
+	y := xyrange * (float64(j)/cells - 0.5)
+
+	z := f(x, y)
+
+	sx := width/2 + (x-y)*cos30*xyscale
+	sy := height/2 + (x+y)*sin30*xyscale - z*zscale
+	return sx, sy
+}
+
+func f(x, y float64) float64 {
+	r := math.Hypot(x, y)
+	return math.Sin(r) / r
+}
+
+
+func mdbrt(w http.ResponseWriter, r *http.Request) {
+	const (
+		xmin, ymin, xmax, ymax = -2, -2, +2, +2
+		width, height          = 1024, 1024
+	)
+
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for py := 0; py < height; py ++ {
+		y := float64(py) / height * (ymax-ymin) + ymin
+		for px := 0; px < width; px ++ {
+			x := float64(px) / width * (xmax-xmin) + xmin
+			z := complex(x, y)
+			img.Set(px, py, mandelbrot(z))
+		}
+	}
+	png.Encode(w, img)
+}
+
+func mandelbrot(z complex128) color.Color {
+	const (
+		iters = 200
+		contr = 15
+	)
+	var v complex128
+	for n := uint8(0); n < iters; n ++ {
+		v = v * v + z
+		if cmplx.Abs(v) > 2 {
+			return color.Gray{ 255 - contr*n }
+		}
+	}
+	return color.Black
+}
+
 
 
